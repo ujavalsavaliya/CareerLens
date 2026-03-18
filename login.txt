@@ -1,0 +1,4 @@
+Test Credentials:
+HR Accounts: hr1@example.com to hr5@example.com
+Jobseeker Accounts: candidate1@example.com to candidate30@example.com
+Password: password123
