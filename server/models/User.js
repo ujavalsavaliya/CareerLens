@@ -10,7 +10,10 @@ const userSchema = new mongoose.Schema({
         url: { type: String, default: '' },
         publicId: { type: String, default: '' }
     },
-    banner: { type: String, default: '' },
+    banner: {
+        url: { type: String, default: '' },
+        publicId: { type: String, default: '' }
+    },
     premium: { type: Boolean, default: false },
     premiumExpiry: { type: Date },
     profile: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile' },
@@ -20,10 +23,13 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-// Normalize legacy avatar strings -> object shape
+// Normalize legacy avatar & banner strings -> object shape
 userSchema.pre('init', function (doc) {
     if (doc && typeof doc.avatar === 'string') {
         doc.avatar = { url: doc.avatar, publicId: '' };
+    }
+    if (doc && typeof doc.banner === 'string') {
+        doc.banner = { url: doc.banner, publicId: '' };
     }
 });
 
@@ -31,6 +37,9 @@ userSchema.pre('init', function (doc) {
 userSchema.pre('save', async function () {
     if (typeof this.avatar === 'string') {
         this.avatar = { url: this.avatar, publicId: '' };
+    }
+    if (typeof this.banner === 'string') {
+        this.banner = { url: this.banner, publicId: '' };
     }
     if (!this.isModified('password')) return;
     this.password = await bcrypt.hash(this.password, 12);

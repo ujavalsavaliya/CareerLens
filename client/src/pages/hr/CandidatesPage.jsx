@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCandidatesAPI, getJobByIdAPI } from '../../api/axiosClient';
-import { Brain, User, ChevronDown, Award, Mail, Sparkles, Target } from 'lucide-react';
+import { Brain, User, ChevronDown, Award, Mail, Sparkles, Target, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const recColors = { 
-    'strongly recommended': '#10b981', 
-    'recommended': '#6366f1', 
-    'consider': '#f59e0b', 
-    'not recommended': '#ef4444' 
-};
 
 export default function CandidatesPage() {
     const { id } = useParams();
@@ -26,168 +19,183 @@ export default function CandidatesPage() {
             .finally(() => setLoading(false));
     }, [id]);
 
-    if (loading) return (
-        <div className="page-container">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {[...Array(5)].map((_, i) => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 16 }} />)}
+    if (loading) {
+        return (
+            <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-6 animate-pulse">
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-24 bg-white/5 border border-white/10 rounded-2xl" />
+                ))}
             </div>
-        </div>
-    );
+        );
+    }
 
     return (
-        <div className="page-container animate-fade-in">
-            <div className="page-header" style={{ marginBottom: 40 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                    <div className="icon-box" style={{ background: 'var(--gradient-1)', width: 48, height: 48 }}>
-                        <Brain size={24} color="white" />
+        <div className="min-h-screen bg-bg-dark p-6 lg:p-10 animate-fade-in relative overflow-hidden">
+            {/* Background Decor */}
+            <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto relative z-10">
+                <div className="mb-12 flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-[24px] bg-linear-to-br from-primary to-secondary flex items-center justify-center text-white shadow-xl shadow-primary/20 shrink-0">
+                        <Brain size={32} />
                     </div>
                     <div>
-                        <h1 style={{ fontSize: 32, fontWeight: 800 }}>AI Matchboard</h1>
-                        <p style={{ color: 'var(--text-muted)' }}>Analyzing <strong>{candidates.length}</strong> top candidates for <strong>{job?.title}</strong></p>
+                        <h1 className="text-3xl lg:text-4xl font-display font-black text-text-primary uppercase tracking-tight">AI Matchboard</h1>
+                        <p className="text-text-secondary text-lg mt-1 font-medium">
+                            Analyzing <span className="text-primary-light font-black">{candidates.length}</span> top candidates for <span className="text-text-primary font-bold">"{job?.title}"</span>
+                        </p>
                     </div>
                 </div>
-            </div>
 
-            {candidates.length === 0 ? (
-                <div className="empty-state glass-card">
-                    <div className="icon-circle" style={{ width: 80, height: 80, background: 'rgba(255,255,255,0.05)' }}>
-                        <User size={40} color="var(--text-muted)" />
+                {candidates.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-20 bg-bg-card/40 backdrop-blur-xl border border-white/10 rounded-[40px] text-center">
+                        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-text-muted mb-6 border border-white/10">
+                            <User size={40} />
+                        </div>
+                        <h3 className="text-2xl font-display font-black text-text-primary mb-3">No Candidates Yet</h3>
+                        <p className="text-text-secondary max-w-sm">Applications will be automatically ranked by our AI engine as they arrive. Check back shortly!</p>
                     </div>
-                    <h3>No Candidates Yet</h3>
-                    <p>Applications will be automatically ranked by AI as they come in.</p>
-                </div>
-            ) : (
-                <div className="candidate-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {candidates.map((c, i) => {
-                        const isExpanded = expanded === i;
-                        const score = Math.round(c.matchScore || 0);
-                        const scoreColor = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
-                        const recColor = recColors[c.recommendation] || '#9ca3af';
-
-                        return (
-                            <div key={i} className={`candidate-card glass-card ${isExpanded ? 'active' : ''}`} 
-                                 style={{ 
-                                     padding: 0, 
-                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                                     overflow: 'hidden',
-                                     animation: `slideUp 0.5s ease-out ${i * 0.1}s both`,
-                                     border: isExpanded ? `1px solid ${scoreColor}40` : '1px solid var(--border)'
-                                 }}>
-                                
-                                <div style={{ padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 20, cursor: 'pointer' }} onClick={() => setExpanded(isExpanded ? null : i)}>
-                                    {/* Rank & Profile Row */}
-                                    <div style={{ position: 'relative' }}>
-                                        <div className="avatar" style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--gradient-3)', fontSize: 20, fontWeight: 800 }}>
-                                            {c.user?.name?.charAt(0) || 'U'}
-                                        </div>
-                                        <div style={{ position: 'absolute', top: -8, left: -8, width: 24, height: 24, borderRadius: 12, background: i < 3 ? 'var(--gradient-1)' : 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: 'white', border: '2px solid var(--bg-deep)' }}>
-                                            #{i + 1}
-                                        </div>
-                                    </div>
-
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                                            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{c.user?.name}</h3>
-                                            {score >= 80 && <Sparkles size={16} color="#fbbf24" style={{ filter: 'drop-shadow(0 0 4px #fbbf24)' }} />}
-                                        </div>
-                                        <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <Award size={14} /> {c.profile?.headline || 'Professional Profile'}
-                                        </div>
-                                    </div>
-
-                                    <div style={{ textAlign: 'right', marginRight: 10 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: 28, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{score}%</div>
-                                                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)', fontWeight: 700 }}>AI Match</div>
+                ) : (
+                    <div className="space-y-4">
+                        {candidates.map((c, i) => {
+                            const isExpanded = expanded === i;
+                            const score = Math.round(c.matchScore || 0);
+                            const scoreColorClass = score >= 80 ? 'text-success' : score >= 50 ? 'text-warning' : 'text-danger';
+                            const scoreBgClass = score >= 80 ? 'bg-success/10' : score >= 50 ? 'bg-warning/10' : 'bg-danger/10';
+                            const scoreBorderClass = score >= 80 ? 'border-success/20' : score >= 50 ? 'border-warning/20' : 'border-danger/20';
+                            
+                            return (
+                                <div 
+                                    key={i} 
+                                    className={`group bg-bg-card/40 backdrop-blur-xl border transition-all duration-300 rounded-[28px] overflow-hidden ${
+                                        isExpanded ? 'border-primary/50 shadow-2xl shadow-primary/10' : 'border-white/10 hover:border-white/20'
+                                    }`}
+                                >
+                                    {/* Main Header Row */}
+                                    <div 
+                                        className="p-6 lg:p-8 flex items-center gap-6 cursor-pointer select-none"
+                                        onClick={() => setExpanded(isExpanded ? null : i)}
+                                    >
+                                        <div className="relative shrink-0">
+                                            <div className="w-16 h-16 rounded-[20px] bg-linear-to-br from-primary/20 to-secondary/20 border border-white/10 flex items-center justify-center text-white font-black text-2xl">
+                                                {c.user?.name?.charAt(0) || 'U'}
                                             </div>
-                                            <div style={{ width: 44, height: 44, borderRadius: '50%', border: `3px solid ${scoreColor}20`, borderTopColor: scoreColor, transform: 'rotate(-45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <Target size={18} color={scoreColor} style={{ transform: 'rotate(45deg)' }} />
+                                            <div className={`absolute -top-2 -left-2 w-7 h-7 rounded-lg border-2 border-bg-dark flex items-center justify-center text-[10px] font-black text-white ${
+                                                i < 3 ? 'bg-linear-to-br from-primary to-secondary shadow-lg shadow-primary/30' : 'bg-bg-elevated'
+                                            }`}>
+                                                #{i + 1}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <ChevronDown size={20} style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: '0.4s cubic-bezier(0.4, 0, 0.2, 1)' }} />
-                                </div>
-
-                                {/* Animated Match Bar */}
-                                <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', position: 'relative' }}>
-                                    <div className="match-fill" style={{ width: `${score}%`, background: scoreColor }} />
-                                </div>
-
-                                {/* Detail Section */}
-                                {isExpanded && (
-                                    <div style={{ padding: '28px', background: 'rgba(255,255,255,0.01)', animation: 'fadeIn 0.4s ease-out' }}>
-                                        <div className="recommendation-chip mb-6" style={{ background: `${recColor}15`, color: recColor, border: `1px solid ${recColor}30` }}>
-                                            <Brain size={16} /> <span>Recommendation: <strong>{c.recommendation}</strong></span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="text-xl font-display font-black text-text-primary truncate">{c.user?.name}</h3>
+                                                {score >= 80 && <Sparkles size={16} className="text-amber-400 animate-pulse shrink-0" />}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-text-secondary text-sm font-medium">
+                                                <Award size={14} className="text-secondary" /> 
+                                                <span className="truncate">{c.profile?.headline || 'Professional Profile'}</span>
+                                            </div>
                                         </div>
 
-                                        <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 24, fontStyle: 'italic' }}>
-                                            "{c.reason}"
-                                        </p>
+                                        <div className="hidden sm:flex items-center gap-4 text-right">
+                                            <div>
+                                                <div className={`text-3xl font-black font-display leading-none ${scoreColorClass}`}>{score}%</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">AI Match</div>
+                                            </div>
+                                            <div className={`w-12 h-12 rounded-full border-4 flex items-center justify-center ${scoreBorderClass} ${scoreColorClass} border-t-current -rotate-45 shrink-0`}>
+                                                <Target size={20} className="rotate-45" />
+                                            </div>
+                                        </div>
 
-                                        {c.matchedAspects && c.matchedAspects.length > 0 && (
-                                            <div style={{ marginBottom: 24, padding: 16, background: 'rgba(99,102,241,0.03)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.1)' }}>
-                                                <h4 style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--primary-light)', marginBottom: 12, fontWeight: 800 }}>AI Match Analysis</h4>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        <ChevronDown size={24} className={`text-text-muted transition-transform duration-400 ${isExpanded ? 'rotate-180' : ''}`} />
+                                    </div>
+
+                                    {/* Match Progress Bar */}
+                                    <div className="h-1 bg-white/5 relative">
+                                        <div 
+                                            className="h-full bg-linear-to-r from-primary to-secondary transition-all duration-1000 ease-out"
+                                            style={{ width: `${score}%` }}
+                                        />
+                                    </div>
+
+                                    {/* Expandable Details */}
+                                    {isExpanded && (
+                                        <div className="p-8 lg:p-10 bg-white/[0.01] animate-fade-in border-t border-white/5">
+                                            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-wider mb-8 ${scoreBgClass} ${scoreColorClass} ${scoreBorderClass}`}>
+                                                <Brain size={14} /> 
+                                                <span>Recommendation: <span className="font-black underline underline-offset-2">{c.recommendation}</span></span>
+                                            </div>
+
+                                            <div className="relative mb-10 pl-8 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-linear-to-b before:from-primary before:to-secondary before:rounded-full">
+                                                <p className="text-lg text-text-secondary leading-relaxed font-medium italic">
+                                                    "{c.reason}"
+                                                </p>
+                                            </div>
+
+                                            {c.matchedAspects && c.matchedAspects.length > 0 && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                                                     {c.matchedAspects.map((aspect, idx) => (
-                                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{aspect.title}</div>
-                                                            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{aspect.content}</div>
+                                                        <div key={idx} className="p-5 bg-white/5 border border-white/10 rounded-2xl group/aspect hover:bg-white/[0.08] transition-colors">
+                                                            <h4 className="text-xs font-black uppercase tracking-widest text-primary-light mb-2">{aspect.title}</h4>
+                                                            <p className="text-sm text-text-secondary leading-normal">{aspect.content}</p>
                                                         </div>
                                                     ))}
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
 
-                                        <div className="grid-2" style={{ gap: 24 }}>
-                                            <div className="skill-section">
-                                                <h4 style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, color: '#10b981', marginBottom: 12, fontWeight: 800 }}>Key Matches</h4>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {(c.matchedSkills || []).map(s => <span key={s} className="match-tag success">{s}</span>)}
-                                                    {(!c.matchedSkills || c.matchedSkills.length === 0) && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Potential skill overlap detected</span>}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                                <div>
+                                                    <h4 className="text-xs font-black uppercase tracking-widest text-success mb-4 flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-success" /> Key Matches
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(c.matchedSkills || []).map(s => (
+                                                            <span key={s} className="px-3 py-1.5 bg-success/10 text-success border border-success/20 rounded-xl text-xs font-bold">
+                                                                {s}
+                                                            </span>
+                                                        ))}
+                                                        {(!c.matchedSkills || c.matchedSkills.length === 0) && <span className="text-xs text-text-muted font-medium italic">High potential overlap detected</span>}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-black uppercase tracking-widest text-danger mb-4 flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-danger" /> Skill Gaps
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(c.missingSkills || []).map(s => (
+                                                            <span key={s} className="px-3 py-1.5 bg-danger/10 text-danger border border-danger/20 rounded-xl text-xs font-bold">
+                                                                {s}
+                                                            </span>
+                                                        ))}
+                                                        {(!c.missingSkills || c.missingSkills.length === 0) && <span className="text-xs text-text-muted font-medium italic">Exceptional skill coverage</span>}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="skill-section">
-                                                <h4 style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, color: '#f87171', marginBottom: 12, fontWeight: 800 }}>Focus Areas</h4>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {(c.missingSkills || []).map(s => <span key={s} className="match-tag danger">{s}</span>)}
-                                                    {(!c.missingSkills || c.missingSkills.length === 0) && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Top percentile match!</span>}
+
+                                            <div className="mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
+                                                <div className="flex items-center gap-3 text-text-muted font-bold text-sm">
+                                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><Mail size={14} /></div>
+                                                    {c.user?.email}
                                                 </div>
+                                                <button 
+                                                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-linear-to-r from-primary to-primary-dark text-white rounded-xl font-bold shadow-lg shadow-primary/25 hover:scale-105 transition-transform"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/hr/candidates/${c.user._id}`);
+                                                    }}
+                                                >
+                                                    View Full Profile <ExternalLink size={16} />
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14 }}>
-                                                <Mail size={16} /> {c.user?.email}
-                                            </div>
-                                            <button className="btn btn-primary btn-sm" onClick={() => navigate(`/hr/candidates/${c.user._id}`)}>View Full Profile</button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            <style>{`
-                @keyframes slideUp {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                .candidate-card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,0.3); background: rgba(255,255,255,0.04); }
-                .match-fill { height: 100%; transition: width 1.5s cubic-bezier(0.1, 0, 0.1, 1); }
-                .recommendation-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; borderRadius: 30px; fontSize: 13px; }
-                .match-tag { padding: 4px 12px; borderRadius: 8px; fontSize: 12px; fontWeight: 600; }
-                .match-tag.success { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
-                .match-tag.danger { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
-                .avatar { display: flex; align-items: center; justifyContent: center; color: white; }
-            `}</style>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

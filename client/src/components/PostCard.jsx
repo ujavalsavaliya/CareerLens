@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send, Pencil, Trash2 } from 'lucide-react';
-import { reactToPost, addComment, deletePost, updatePost } from '../app/slices/postSlice';
+import { reactToPost, addComment, deletePost, updatePost, likeComment, replyToComment, likeReply } from '../app/slices/postSlice';
 import toast from 'react-hot-toast';
 
 export default function PostCard({ post }) {
@@ -16,6 +16,9 @@ export default function PostCard({ post }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.content || '');
   const [likeBurst, setLikeBurst] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replySubmitting, setReplySubmitting] = useState(false);
 
   const handleReaction = async (type) => {
     try {
@@ -45,6 +48,31 @@ export default function PostCard({ post }) {
     }
   };
 
+  const handleReply = async (e, commentId) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+
+    setReplySubmitting(true);
+    try {
+      await dispatch(replyToComment({ postId: post._id, commentId, text: replyText })).unwrap();
+      setReplyText('');
+      setReplyingTo(null);
+      toast.success('Reply added');
+    } catch (error) {
+      toast.error('Failed to reply');
+    } finally {
+      setReplySubmitting(false);
+    }
+  };
+
+  const handleLikeComment = (commentId) => {
+    dispatch(likeComment({ postId: post._id, commentId }));
+  };
+
+  const handleLikeReply = (commentId, replyId) => {
+    dispatch(likeReply({ postId: post._id, commentId, replyId }));
+  };
+
   const reactionIcons = {
     like: '👍',
     love: '❤️',
@@ -60,7 +88,7 @@ export default function PostCard({ post }) {
   };
 
   return (
-    <div className="post-card glass-card">
+    <div className="bg-bg-card/40 backdrop-blur-xl border border-white/10 rounded-[32px] p-6 hover:border-primary/40 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] hover:bg-white/2 transition-all duration-500">
       {/* Header */}
       <div className="post-header">
         <Link to={`/profile/${post.author._id}`} className="post-author">
@@ -152,32 +180,33 @@ export default function PostCard({ post }) {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="post-stats">
-        <div className="comments-count">
-          {(post.reactionCount ?? post.reactions?.length ?? 0)} reactions · {post.comments?.length || 0} comments · {post.shareCount || 0} shares
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="post-actions">
+      {/* Instagram-style Actions & Stats */}
+      <div className="flex items-center gap-2 py-2 mt-4 border-t border-white/5">
         <button 
-          className={`action-btn ${post.userReaction ? 'active' : ''} ${likeBurst ? 'like-burst' : ''}`}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-full transition-all group ${post.userReaction ? 'text-rose-500' : 'text-text-muted hover:text-text-primary'}`}
           onClick={() => handleReaction(post.userReaction || 'like')}
         >
-          <Heart size={18} />
-          <span>{post.userReaction ? 'Liked' : 'Like'}</span>
+          <div className={`p-1.5 rounded-full transition-all ${post.userReaction ? 'bg-rose-500/20' : 'group-hover:bg-white/10'}`}>
+            <Heart size={20} className={post.userReaction ? 'fill-current' : ''} />
+          </div>
+          <span className="text-sm font-bold tracking-wide">{(post.reactionCount ?? post.reactions?.length ?? 0)}</span>
         </button>
+
         <button 
-          className="action-btn"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-text-muted hover:text-text-primary transition-all group"
           onClick={() => setShowComments(!showComments)}
         >
-          <MessageCircle size={18} />
-          <span>Comment</span>
+          <div className="p-1.5 rounded-full transition-all group-hover:bg-blue-500/20 group-hover:text-blue-400">
+            <MessageCircle size={20} />
+          </div>
+          <span className="text-sm font-bold tracking-wide">{post.comments?.length || 0}</span>
         </button>
-        <button className="action-btn" disabled title="Share UI coming next">
-          <Share2 size={18} />
-          <span>Share</span>
+
+        <button className="flex items-center gap-1.5 px-3 py-2 rounded-full text-text-muted hover:text-text-primary transition-all group ml-auto" disabled title="Share UI coming next">
+          <div className="p-1.5 rounded-full transition-all group-hover:bg-emerald-500/20 group-hover:text-emerald-400">
+             <Share2 size={20} />
+          </div>
+          <span className="text-sm font-bold tracking-wide">{post.shareCount || 0}</span>
         </button>
       </div>
 
@@ -233,6 +262,73 @@ export default function PostCard({ post }) {
                     </span>
                   </div>
                   <p className="comment-text">{comment.text}</p>
+                  <div className="comment-actions">
+                    <button 
+                      className={`flex items-center gap-1.5 transition-all group ${comment.likes?.includes(user?._id) ? 'text-rose-500' : 'text-text-muted hover:text-text-primary'}`}
+                      onClick={() => handleLikeComment(comment._id)}
+                    >
+                      <div className={`p-1 rounded-full transition-all ${comment.likes?.includes(user?._id) ? 'bg-rose-500/10' : 'group-hover:bg-white/10'}`}>
+                        <Heart size={14} className={comment.likes?.includes(user?._id) ? 'fill-current' : ''} />
+                      </div>
+                      <span className="text-[11px] font-bold">{(comment.likesCount || comment.likes?.length || 0)}</span>
+                    </button>
+                    <button 
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-bold text-text-muted hover:text-text-primary hover:bg-white/5 transition-all"
+                      onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+                    >
+                      Reply
+                    </button>
+                  </div>
+
+                  {/* Replies list */}
+                  {comment.replies?.length > 0 && (
+                    <div className="replies-list">
+                      {comment.replies.map(reply => (
+                        <div key={reply._id} className="reply-item">
+                          <Link to={`/profile/${reply.author._id}`} className="reply-avatar">
+                            <div style={{ background: reply.author.avatar?.url ? `url(${reply.author.avatar.url}) center/cover` : 'var(--gradient-2)' }}>
+                              {!reply.author.avatar?.url && reply.author.name?.charAt(0)}
+                            </div>
+                          </Link>
+                          <div className="reply-content">
+                            <div className="reply-header">
+                              <Link to={`/profile/${reply.author._id}`} className="reply-author">{reply.author.name}</Link>
+                              <span className="reply-time">{formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}</span>
+                            </div>
+                            <p className="reply-text">{reply.text}</p>
+                            <div className="reply-actions">
+                              <button 
+                                className={`flex items-center gap-1.5 transition-all group ${reply.likes?.includes(user?._id) ? 'text-rose-500' : 'text-text-muted hover:text-text-primary'}`}
+                                onClick={() => handleLikeReply(comment._id, reply._id)}
+                              >
+                                <div className={`p-1 rounded-full transition-all ${reply.likes?.includes(user?._id) ? 'bg-rose-500/10' : 'group-hover:bg-white/10'}`}>
+                                  <Heart size={12} className={reply.likes?.includes(user?._id) ? 'fill-current' : ''} />
+                                </div>
+                                <span className="text-[10px] font-bold">{(reply.likesCount || reply.likes?.length || 0)}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply form */}
+                  {replyingTo === comment._id && (
+                    <form onSubmit={(e) => handleReply(e, comment._id)} className="reply-form">
+                      <input
+                        type="text"
+                        placeholder="Write a reply..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        autoFocus
+                        disabled={replySubmitting}
+                      />
+                      <button type="submit" disabled={!replyText.trim() || replySubmitting}>
+                        <Send size={14} />
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
             ))}
@@ -437,6 +533,91 @@ export default function PostCard({ post }) {
           font-size: 13px;
           color: var(--text-secondary);
           line-height: 1.5;
+        }
+        .comment-actions, .reply-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-top: 6px;
+        }
+        .replies-list {
+          margin-top: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding-left: 8px;
+          border-left: 1px solid rgba(255,255,255,0.05);
+        }
+        .reply-item {
+          display: flex;
+          gap: 10px;
+        }
+        .reply-avatar {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 10px;
+          font-weight: 800;
+          background-size: cover !important;
+        }
+        .reply-avatar div { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .reply-content {
+          flex: 1;
+          background: rgba(255,255,255,0.02);
+          padding: 8px 12px;
+          border-radius: 12px;
+        }
+        .reply-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 2px;
+        }
+        .reply-author {
+          font-weight: 700;
+          font-size: 12px;
+          color: var(--text-primary);
+          text-decoration: none;
+        }
+        .reply-time {
+          font-size: 10px;
+          color: var(--text-muted);
+        }
+        .reply-text {
+          font-size: 12px;
+          color: var(--text-secondary);
+          line-height: 1.4;
+        }
+        .reply-form {
+          margin-top: 8px;
+          display: flex;
+          gap: 8px;
+        }
+        .reply-form input {
+          flex: 1;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 6px 12px;
+          font-size: 12px;
+          color: var(--text-primary);
+          outline: none;
+        }
+        .reply-form button {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: var(--primary);
+          color: white;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
         }
         .post-menu {
           border: 1px solid var(--border);

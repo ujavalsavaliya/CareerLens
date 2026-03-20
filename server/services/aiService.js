@@ -6,20 +6,13 @@ if (!process.env.GEMINI_API_KEY) {
   console.error('❌ GEMINI_API_KEY is not set in environment variables.');
 }
 
-// Force the correct base URL (fixes common typo issues)
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com';
-if (process.env.GENERATIVE_AI_BASE_URL && process.env.GENERATIVE_AI_BASE_URL !== GEMINI_BASE_URL) {
-  console.warn(`⚠️  GENERATIVE_AI_BASE_URL is set to "${process.env.GENERATIVE_AI_BASE_URL}" – overriding to "${GEMINI_BASE_URL}"`);
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, {
-  baseUrl: GEMINI_BASE_URL
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // List of models to try in order of preference (latest stable first)
 const MODEL_PRIORITY = [
+  'gemini-1.5-flash-latest',
   'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',  // lighter variant
+  'gemini-1.5-pro-latest',
   'gemini-1.5-pro',
   'gemini-1.0-pro'
 ];

@@ -51,6 +51,42 @@ export const addComment = createAsyncThunk(
     }
 );
 
+export const likeComment = createAsyncThunk(
+    'posts/likeComment',
+    async ({ postId, commentId }, { rejectWithValue }) => {
+        try {
+            const res = await API.post(`/posts/${postId}/comments/${commentId}/like`);
+            return { postId, commentId, likes: res.data.likes };
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || 'Failed to like comment');
+        }
+    }
+);
+
+export const replyToComment = createAsyncThunk(
+    'posts/replyToComment',
+    async ({ postId, commentId, text }, { rejectWithValue }) => {
+        try {
+            const res = await API.post(`/posts/${postId}/comments/${commentId}/reply`, { text });
+            return { postId, commentId, reply: res.data };
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || 'Failed to reply');
+        }
+    }
+);
+
+export const likeReply = createAsyncThunk(
+    'posts/likeReply',
+    async ({ postId, commentId, replyId }, { rejectWithValue }) => {
+        try {
+            const res = await API.post(`/posts/${postId}/comments/${commentId}/replies/${replyId}/like`);
+            return { postId, commentId, replyId, likes: res.data.likes };
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || 'Failed to like reply');
+        }
+    }
+);
+
 export const deletePost = createAsyncThunk(
     'posts/deletePost',
     async (postId, { rejectWithValue }) => {
@@ -129,14 +165,49 @@ const postSlice = createSlice({
                 if (idx > -1) {
                     state.posts[idx].reactions = reactions;
                     state.posts[idx].reactionCount = count;
-                    state.posts[idx].userReaction = userReaction ?? state.posts[idx].userReaction ?? null;
+                    state.posts[idx].userReaction = userReaction;
                 }
             })
             .addCase(addComment.fulfilled, (state, action) => {
                 const { postId, comment } = action.payload;
-                const idx = state.posts.findIndex(p => p._id === postId);
-                if (idx > -1) {
-                    state.posts[idx].comments = [...(state.posts[idx].comments || []), comment];
+                const post = state.posts.find(p => p._id === postId);
+                if (post) {
+                    post.comments = [...(post.comments || []), comment];
+                }
+            })
+            .addCase(likeComment.fulfilled, (state, action) => {
+                const { postId, commentId, likes } = action.payload;
+                const post = state.posts.find(p => p._id === postId);
+                if (post) {
+                    const comment = post.comments?.find(c => c._id === commentId);
+                    if (comment) {
+                        comment.likes = likes;
+                        comment.likesCount = likes.length;
+                    }
+                }
+            })
+            .addCase(replyToComment.fulfilled, (state, action) => {
+                const { postId, commentId, reply } = action.payload;
+                const post = state.posts.find(p => p._id === postId);
+                if (post) {
+                    const comment = post.comments?.find(c => c._id === commentId);
+                    if (comment) {
+                        comment.replies = [...(comment.replies || []), reply];
+                    }
+                }
+            })
+            .addCase(likeReply.fulfilled, (state, action) => {
+                const { postId, commentId, replyId, likes } = action.payload;
+                const post = state.posts.find(p => p._id === postId);
+                if (post) {
+                    const comment = post.comments?.find(c => c._id === commentId);
+                    if (comment) {
+                        const reply = comment.replies?.find(r => r._id === replyId);
+                        if (reply) {
+                            reply.likes = likes;
+                            reply.likesCount = likes.length;
+                        }
+                    }
                 }
             })
             .addCase(deletePost.fulfilled, (state, action) => {

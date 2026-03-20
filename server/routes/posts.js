@@ -12,6 +12,7 @@ const {
     addComment,
     replyToComment,
     likeComment,
+    likeReply,
     sharePost,
     getByHashtag,
     getUserPosts
@@ -35,6 +36,7 @@ router.post('/:id/react', reactToPost);
 router.post('/:id/comment', addComment);
 router.post('/:id/comments/:cid/reply', replyToComment);
 router.post('/:id/comments/:cid/like', likeComment);
+router.post('/:id/comments/:cid/replies/:rid/like', likeReply);
 router.post('/:id/share', sharePost);
 
 module.exports = router;

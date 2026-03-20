@@ -40,9 +40,19 @@ const profileSchema = new mongoose.Schema({
     }],
     aiAnalysis: {
         score: { type: Number, default: 0 },
+        atsScore: { type: Number, default: 0 },
+        sectionScores: {
+            contact: { type: Number, default: 0 },
+            summary: { type: Number, default: 0 },
+            experience: { type: Number, default: 0 },
+            skills: { type: Number, default: 0 },
+            education: { type: Number, default: 0 },
+            formatting: { type: Number, default: 0 }
+        },
         feedback: { type: String, default: '' },
         missingKeywords: [String],
         extractedSkills: [String],
+        improvements: [String],
         profileSummary: { type: String, default: '' },
         lastAnalyzed: Date
     },

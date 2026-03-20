@@ -34,7 +34,7 @@ export default function SocialFeed() {
   }
 
   return (
-    <div className="social-feed">
+    <div className="social-feed pt-8 lg:pt-10 pb-10 px-4">
       <CreatePost onPostCreated={handlePostCreated} />
       
       <InfiniteScroll

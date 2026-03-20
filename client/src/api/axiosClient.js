@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api',
     headers: { 'Content-Type': 'application/json' }
 });
 
@@ -35,6 +35,7 @@ export const getMyProfileAPI = () => API.get('/profile/me');
 export const updateMyProfileAPI = (data) => API.put('/profile/me', data);
 export const uploadResumeAPI = (formData) => API.post('/profile/resume', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 export const uploadCertificateAPI = (formData) => API.post('/profile/certificate', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const uploadBannerAPI = (formData) => API.post('/users/banner', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 export const getAIFeedbackAPI = () => API.get('/profile/ai-feedback');
 export const getProfileByUserIdAPI = (userId) => API.get(`/profile/${userId}`);
 
@@ -48,7 +49,13 @@ export const followUserAPI = (userId) => API.post(`/connections/follow/${userId}
 export const unfollowUserAPI = (userId) => API.delete(`/connections/unfollow/${userId}`);
 
 // MESSAGES
-export const sendMessageAPI = (userId, data) => API.post(`/messages/${userId}`, data);
+export const getConversationsAPI = () => API.get('/messages');
+export const getMessagesAPI = (conversationId, params) => API.get(`/messages/${conversationId}`, { params });
+export const markMessagesReadAPI = (conversationId) => API.put(`/messages/${conversationId}/read`);
+export const sendMessageAPI = (userId, data) => 
+    data instanceof FormData 
+        ? API.post(`/messages/${userId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+        : API.post(`/messages/${userId}`, data);
 
 // JOBS
 export const getJobsAPI = (params) => API.get('/jobs', { params });
@@ -65,5 +72,11 @@ export const getMyApplicationsAPI = () => API.get('/jobs/my-applications');
 
 // POSTS
 export const getUserPostsAPI = (userId, params) => API.get(`/posts/user/${userId}`, { params });
+
+// NOTIFICATIONS
+export const getNotificationsAPI = () => API.get('/notifications');
+export const markNotificationReadAPI = (id) => API.put(`/notifications/${id}/read`);
+export const markAllNotificationsReadAPI = () => API.put('/notifications/read-all');
+export const deleteNotificationAPI = (id) => API.delete(`/notifications/${id}`);
 
 export default API;

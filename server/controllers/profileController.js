@@ -1,6 +1,7 @@
 const Profile = require('../models/Profile');
 const User = require('../models/User');
 const { analyzeResume, generateProfileSummary } = require('../services/aiService');
+const { Follow } = require('../models/Connection');
 const pdfParse = require('pdf-parse');
 const fs = require('fs');
 const path = require('path');
@@ -23,11 +24,19 @@ const getMyProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
     try {
         const updates = req.body;
+        
+        // Handle name update for User model
+        if (updates.name) {
+            await User.findByIdAndUpdate(req.user._id, { name: updates.name });
+        }
+
         delete updates.user; delete updates.aiAnalysis; delete updates.resume; delete updates.certificates;
+        delete updates.name; // Don't save name in Profile model
+
         const profile = await Profile.findOneAndUpdate(
             { user: req.user._id },
             { ...updates, completionPercentage: calcCompletion(updates) },
-            { new: true, upsert: true, runValidators: true }
+            { returnDocument: 'after', upsert: true, runValidators: true }
         );
         res.json(profile);
     } catch (error) {
@@ -62,9 +71,12 @@ const uploadResume = async (req, res) => {
 
             profile.aiAnalysis = {
                 score: analysis.score || 0,
+                atsScore: analysis.atsScore || 0,
+                sectionScores: analysis.sectionScores || { contact: 0, summary: 0, experience: 0, skills: 0, education: 0, formatting: 0 },
                 feedback: analysis.feedback || '',
                 missingKeywords: analysis.missingKeywords || [],
                 extractedSkills: analysis.extractedSkills || [],
+                improvements: analysis.improvements || [],
                 profileSummary: summary,
                 lastAnalyzed: new Date()
             };
@@ -128,9 +140,17 @@ const getAIFeedback = async (req, res) => {
 // @desc  Get a user profile (public)
 const getProfileByUserId = async (req, res) => {
     try {
-        const profile = await Profile.findOne({ user: req.params.userId }).populate('user', 'name email avatar role company');
+        const profile = await Profile.findOne({ user: req.params.userId }).populate('user', 'name email avatar banner role company connectionCount premium');
         if (!profile) return res.status(404).json({ message: 'Profile not found' });
-        res.json(profile);
+        
+        const followersCount = await Follow.countDocuments({ following: req.params.userId });
+        const followingCount = await Follow.countDocuments({ follower: req.params.userId });
+
+        res.json({
+            ...profile.toObject(),
+            followersCount,
+            followingCount
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -37,15 +37,27 @@ exports.getConversations = async (req, res) => {
 // POST /api/messages/:userId — send message / start conversation
 exports.sendMessage = async (req, res) => {
     try {
+        const uploadedMedia = (req.files || []).map(f => ({
+            url: f.path,
+            type: f.mimetype.startsWith('image') ? 'image' : 
+                  f.mimetype.startsWith('video') ? 'video' : 'document',
+            name: f.originalname
+        }));
+
         const { content } = req.body;
-        if (!content) return res.status(400).json({ message: 'Message content required' });
+
+        const bodyMedia = Array.isArray(req.body.media) ? req.body.media : [];
+        const media = uploadedMedia.length > 0 ? uploadedMedia : bodyMedia;
+
+        if (!content && media.length === 0) return res.status(400).json({ message: 'Message content or media required' });
 
         const conv = await getOrCreateConversation(req.user._id, req.params.userId);
 
         const msg = await Message.create({
             conversation: conv._id,
             sender: req.user._id,
-            content,
+            content: content || '',
+            media,
             readBy: [req.user._id]
         });
 

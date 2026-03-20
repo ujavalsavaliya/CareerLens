@@ -82,7 +82,7 @@ const updateJob = async (req, res) => {
         if (!job) return res.status(404).json({ message: 'Job not found' });
         if (job.postedBy.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Not authorized' });
 
-        const updated = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updated = await Job.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' });
         res.json(updated);
     } catch (error) {
         res.status(500).json({ message: error.message });

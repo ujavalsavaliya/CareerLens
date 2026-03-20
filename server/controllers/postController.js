@@ -269,7 +269,34 @@ exports.likeComment = async (req, res) => {
             await notify(comment.author, userId, 'comment_like', post._id);
         }
         await post.save();
-        res.json({ likes: comment.likes.length });
+        res.json({ likes: comment.likes });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// POST /api/posts/:id/comments/:cid/replies/:rid/like
+exports.likeReply = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
+        const comment = post.comments.id(req.params.cid);
+        if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+        const reply = comment.replies.id(req.params.rid);
+        if (!reply) return res.status(404).json({ message: 'Reply not found' });
+
+        const userId = req.user._id;
+        const idx = reply.likes.indexOf(userId.toString());
+        if (idx > -1) {
+            reply.likes.splice(idx, 1);
+        } else {
+            reply.likes.push(userId);
+            await notify(reply.author, userId, 'reply_like', post._id);
+        }
+        await post.save();
+        res.json({ likes: reply.likes });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

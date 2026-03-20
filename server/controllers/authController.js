@@ -63,6 +63,7 @@ const login = async (req, res) => {
             role: user.role,
             company: user.company,
             avatar: user.avatar,
+            banner: user.banner,
             premium: user.premium,
             profile: user.profile,
             token: generateToken(user._id)

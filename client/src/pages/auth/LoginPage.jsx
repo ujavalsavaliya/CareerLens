@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../../app/slices/authSlice';
-import { Zap, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, Brain, Target, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
-import './Auth.css';
 
 export default function LoginPage() {
     const [form, setForm] = useState({ email: '', password: '' });
@@ -25,90 +24,124 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="auth-page">
-            {/* Animated background */}
-            <div className="auth-bg">
-                <div className="auth-orb auth-orb-1" />
-                <div className="auth-orb auth-orb-2" />
-                <div className="auth-orb auth-orb-3" />
-                <div className="auth-grid-lines" />
+        <div className="min-h-screen bg-bg-dark font-sans text-text-primary flex items-center justify-center p-6 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full animate-float" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-secondary/10 blur-[120px] rounded-full animate-float [animation-delay:2s]" />
+                <div className="absolute inset-0 bg-size-[40px_40px] bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]" />
             </div>
 
-            <div className="auth-wrapper">
-                {/* Left panel decoration */}
-                <div className="auth-left-panel">
-                    <div className="alp-logo">
-                        <div className="logo-icon"><Zap size={22} /></div>
-                        <span className="logo-text">Career<span className="gradient-text">Lens</span></span>
+            <div className="relative z-10 w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[40px] shadow-2xl overflow-hidden animate-scale">
+                
+                {/* Left Panel - Hero Branding */}
+                <div className="hidden lg:flex flex-col p-12 bg-linear-to-br from-primary/10 to-transparent relative">
+                    <div className="flex items-center gap-3 mb-16">
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-primary to-secondary flex items-center justify-center text-white shadow-lg shadow-primary/30">
+                            <Zap size={22} fill="currentColor" />
+                        </div>
+                        <span className="text-2xl font-display font-black tracking-tight">Career<span className="bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">Lens</span></span>
                     </div>
-                    <div className="alp-headline">
-                        <h2>AI that <span className="gradient-text">accelerates</span> your career</h2>
-                        <p>Smart resume scoring, job matching, and recruiter-side AI ranking — all in one platform.</p>
+
+                    <div className="mb-auto">
+                        <h2 className="text-4xl font-display font-black leading-tight mb-6">
+                            AI that <span className="bg-linear-to-r from-primary to-secondary bg-clip-text text-transparent">accelerates</span> your career
+                        </h2>
+                        <p className="text-text-secondary text-lg leading-relaxed max-w-sm">
+                            Smart resume scoring, job matching, and recruiter-side AI ranking — all in one platform.
+                        </p>
                     </div>
-                    <div className="alp-stats">
-                        {[['50K+', 'Professionals'], ['94%', 'Match accuracy'], ['8.5K+', 'Placements']].map(([v, l]) => (
-                            <div key={l} className="alp-stat">
-                                <div className="alp-stat-val gradient-text">{v}</div>
-                                <div className="alp-stat-lbl">{l}</div>
+
+                    <div className="grid grid-cols-3 gap-6 pt-12 border-t border-white/5">
+                        {[
+                            { v: '50K+', l: 'Users', icon: Star, color: 'text-amber-400' },
+                            { v: '94%', l: 'Accuracy', icon: Target, color: 'text-secondary' },
+                            { v: '8.5K', l: 'Roles', icon: Brain, color: 'text-primary' }
+                        ].map((s, i) => (
+                            <div key={i} className="space-y-1">
+                                <div className="text-xl font-display font-black text-text-primary">{s.v}</div>
+                                <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{s.l}</div>
                             </div>
                         ))}
                     </div>
-                    <div className="alp-floating-card alp-card-1 glass">
-                        <div className="alp-fc-score">82</div>
-                        <div className="alp-fc-label">AI Resume Score</div>
-                        <div className="progress-bar mt-2"><div className="progress-fill" style={{ width: '82%' }} /></div>
-                    </div>
-                    <div className="alp-floating-card alp-card-2 glass">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontSize: 20 }}>🎯</span>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>Match Found</span>
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Senior Dev at Google</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#34d399', marginTop: 4 }}>94% match</div>
-                    </div>
+
+                    {/* Decorative Elements */}
+                    <div className="absolute top-1/2 -right-12 w-32 h-32 bg-secondary/20 blur-3xl animate-pulse" />
                 </div>
 
-                {/* Right form panel */}
-                <div className="auth-right-panel">
-                    <div className="auth-form-card animate-scale">
-                        <div className="auth-form-header">
-                            <h1>Welcome back</h1>
-                            <p>Sign in to continue your career journey</p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="auth-form-body">
-                            <div className="auth-field">
-                                <label>Email Address</label>
-                                <div className="auth-input-wrap">
-                                    <Mail size={16} className="auth-input-icon" />
-                                    <input type="email" placeholder="you@example.com" value={form.email}
-                                        onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
-                                </div>
-                            </div>
-
-                            <div className="auth-field">
-                                <label>Password</label>
-                                <div className="auth-input-wrap">
-                                    <Lock size={16} className="auth-input-icon" />
-                                    <input type={showPw ? 'text' : 'password'} placeholder="••••••••"
-                                        value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
-                                    <button type="button" className="auth-eye-btn" onClick={() => setShowPw(!showPw)}>
-                                        {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {error && <div className="auth-error-msg">{error}</div>}
-
-                            <button type="submit" className="auth-submit-btn" disabled={loading}>
-                                {loading ? <span className="btn-spinner" /> : 'Sign In'}
-                            </button>
-                        </form>
-
-                        <div className="auth-form-footer">
-                            Don't have an account? <Link to="/signup">Create one free</Link>
-                        </div>
+                {/* Right Panel - Login Form */}
+                <div className="p-10 lg:p-16 flex flex-col justify-center">
+                    <div className="mb-10 text-center lg:text-left">
+                        <h1 className="text-3xl font-display font-black text-text-primary mb-3">Welcome back</h1>
+                        <p className="text-text-secondary">Sign in to continue your career journey</p>
                     </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-muted uppercase tracking-widest ml-1">Email Address</label>
+                            <div className="relative group">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
+                                <input 
+                                    type="email" 
+                                    placeholder="you@example.com" 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-all"
+                                    value={form.email}
+                                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-muted uppercase tracking-widest ml-1">Password</label>
+                            <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={18} />
+                                <input 
+                                    type={showPw ? 'text' : 'password'} 
+                                    placeholder="••••••••" 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-all"
+                                    value={form.password}
+                                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                                    required
+                                />
+                                <button 
+                                    type="button" 
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors p-1"
+                                    onClick={() => setShowPw(!showPw)}
+                                >
+                                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {error && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold">{error}</div>}
+
+                        <button 
+                            type="submit" 
+                            disabled={loading}
+                            className="w-full py-4 bg-linear-to-r from-primary to-secondary text-white font-black text-lg rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3"
+                        >
+                            {loading ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Sign In <ArrowRight size={20} /></>}
+                        </button>
+                    </form>
+
+                    <div className="mt-8 relative text-center">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                        <span className="relative px-4 bg-[#111] text-[10px] font-black tracking-widest text-text-muted uppercase">Or continue with</span>
+                    </div>
+
+                    <div className="mt-8 grid grid-cols-2 gap-4">
+                        <button className="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-xl font-bold text-sm text-text-primary hover:bg-white/10 transition-colors">
+                            <img src="https://authjs.dev/img/providers/google.svg" alt="G" className="w-4 h-4" /> Google
+                        </button>
+                        <button className="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-xl font-bold text-sm text-text-primary hover:bg-white/10 transition-colors">
+                            <img src="https://authjs.dev/img/providers/linkedin.svg" alt="L" className="w-4 h-4" /> LinkedIn
+                        </button>
+                    </div>
+
+                    <p className="mt-10 text-center text-text-muted text-sm font-medium">
+                        Don't have an account? <Link to="/signup" className="text-primary-light font-black hover:underline ml-1">Create one free</Link>
+                    </p>
                 </div>
             </div>
         </div>

@@ -48,3 +48,47 @@ exports.removeAvatar = async (req, res) => {
     }
 };
 
+// POST /api/users/banner
+exports.uploadBanner = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (user.banner?.publicId) {
+            await cloudinary.uploader.destroy(user.banner.publicId);
+        }
+
+        user.banner = {
+            url: req.file.path,
+            publicId: req.file.filename
+        };
+        await user.save();
+
+        res.json({ message: 'Banner uploaded successfully', banner: user.banner });
+    } catch (err) {
+        console.error('Banner upload error:', err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// DELETE /api/users/banner
+exports.removeBanner = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (user.banner?.publicId) {
+            await cloudinary.uploader.destroy(user.banner.publicId);
+        }
+
+        user.banner = { url: '', publicId: '' };
+        await user.save();
+
+        res.json({ message: 'Banner removed successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+

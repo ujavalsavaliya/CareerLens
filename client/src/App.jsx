@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useSelector } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import LandingPage from './pages/public/LandingPage';
 import PremiumPage from './pages/public/PremiumPage';
 import UserProfileView from './pages/public/UserProfileView';
@@ -20,6 +21,8 @@ import CandidatesPage from './pages/hr/CandidatesPage';
 import CandidateProfilePage from './pages/hr/CandidateProfilePage';
 import SocialFeed from './components/SocialFeed';
 import MyProfileOverview from './pages/seeker/MyProfileOverview';
+import ChatWidget from './components/ChatWidget';
+import NotificationWidget from './components/NotificationWidget';
 
 const PrivateRoute = ({ children, role }) => {
   const { user, token } = useSelector(s => s.auth);
@@ -37,12 +40,16 @@ const PublicRoute = ({ children }) => {
 function AppLayout() {
   const location = useLocation();
   const { user, token } = useSelector(s => s.auth);
-  const hideNavbar = !user || !token || ['/', '/login', '/signup'].includes(location.pathname);
+  const hideNavbar = !user || !token ? !['/'].includes(location.pathname) : false; // Show navbar on landing even if not logged in
+  // Actually, let's keep it simple: show navbar always unless it's login/signup and user is NOT logged in.
+  const isAuthPage = ['/login', '/signup'].includes(location.pathname);
+  const showNavbar = user || location.pathname === '/';
+  const showFooter = !isAuthPage;
 
   return (
     <div className="app-shell">
-      {!hideNavbar && <Navbar />}
-      <main className="app-main" style={hideNavbar ? { marginLeft: 0, paddingTop: 0 } : undefined}>
+      {showNavbar && <Navbar />}
+      <main className="app-main">
         <Toaster position="top-right" toastOptions={{ style: { background: '#1f2937', color: '#f9fafb', border: '1px solid rgba(255,255,255,0.1)' } }} />
         <Routes>
           {/* Public */}
@@ -53,9 +60,9 @@ function AppLayout() {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
 
-          {/* Job Seeker */}
+          {/* Job Seeker & General Owned Profile */}
           <Route path="/dashboard" element={<PrivateRoute role="jobseeker"><Dashboard /></PrivateRoute>} />
-          <Route path="/me" element={<PrivateRoute><MyProfileOverview /></PrivateRoute>} />
+          <Route path="/me" element={<PrivateRoute><UserProfileView /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
           <Route path="/profile/:userId" element={<PrivateRoute><UserProfileView /></PrivateRoute>} />
           <Route path="/ai-feedback" element={<PrivateRoute role="jobseeker"><AIFeedbackPage /></PrivateRoute>} />
@@ -75,6 +82,9 @@ function AppLayout() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      {showFooter && <Footer />}
+      <ChatWidget />
+      <NotificationWidget />
     </div>
   );
 }
