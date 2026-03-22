@@ -45,11 +45,11 @@ const getWorkingModel = async () => {
     } catch (err) {
       // Log the detailed error for debugging
       console.warn(`⚠️ Model ${modelName} failed:`, err.message);
-      // If it's a quota/rate limit error, break early to avoid spamming
+      // After the first failure, do not try any other models
       if (err.message?.includes('429') || err.status === 429) {
         console.log('⛔ Quota exceeded – will not retry other models until reset.');
-        break;
       }
+      break;
     }
   }
   throw new Error('No working Gemini model found – falling back to heuristic matching');

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../../app/slices/authSlice';
+import { loginUser, clearError } from '../../app/slices/authSlice';
 import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, Brain, Target, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,6 +14,7 @@ export default function LoginPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        dispatch(clearError());
         const res = await dispatch(loginUser(form));
         if (loginUser.fulfilled.match(res)) {
             toast.success(`Welcome back, ${res.payload.name}! 🎉`);
@@ -21,6 +22,11 @@ export default function LoginPage() {
         } else {
             toast.error(res.payload || 'Login failed');
         }
+    };
+
+    const handleChange = (field) => (e) => {
+        dispatch(clearError());
+        setForm(f => ({ ...f, [field]: e.target.value }));
     };
 
     return (
@@ -86,7 +92,7 @@ export default function LoginPage() {
                                     placeholder="you@example.com" 
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-all"
                                     value={form.email}
-                                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                                    onChange={handleChange('email')}
                                     required
                                 />
                             </div>
@@ -101,7 +107,7 @@ export default function LoginPage() {
                                     placeholder="••••••••" 
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-all"
                                     value={form.password}
-                                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                                    onChange={handleChange('password')}
                                     required
                                 />
                                 <button 
@@ -129,16 +135,6 @@ export default function LoginPage() {
                         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
                         <span className="relative px-4 bg-[#111] text-[10px] font-black tracking-widest text-text-muted uppercase">Or continue with</span>
                     </div>
-
-                    <div className="mt-8 grid grid-cols-2 gap-4">
-                        <button className="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-xl font-bold text-sm text-text-primary hover:bg-white/10 transition-colors">
-                            <img src="https://authjs.dev/img/providers/google.svg" alt="G" className="w-4 h-4" /> Google
-                        </button>
-                        <button className="flex items-center justify-center gap-3 py-3.5 bg-white/5 border border-white/10 rounded-xl font-bold text-sm text-text-primary hover:bg-white/10 transition-colors">
-                            <img src="https://authjs.dev/img/providers/linkedin.svg" alt="L" className="w-4 h-4" /> LinkedIn
-                        </button>
-                    </div>
-
                     <p className="mt-10 text-center text-text-muted text-sm font-medium">
                         Don't have an account? <Link to="/signup" className="text-primary-light font-black hover:underline ml-1">Create one free</Link>
                     </p>

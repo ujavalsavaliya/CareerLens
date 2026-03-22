@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { getMyProfileAPI, updateMyProfileAPI, uploadResumeAPI, uploadCertificateAPI, uploadBannerAPI } from '../../api/axiosClient';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateUserName } from '../../app/slices/authSlice';
-import { User, Briefcase, GraduationCap, Upload, X, Plus, FileText, Award, Link as LinkIcon, Save, ChevronRight, Globe, Github, Linkedin, Sparkles, Brain, CheckCircle, Camera } from 'lucide-react';
+import { User, Briefcase, GraduationCap, Upload, X, Plus, FileText, Award, Link as LinkIcon, Save, ChevronRight, Globe, Github, Linkedin, Sparkles, Brain, CheckCircle, Camera, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AvatarUpload from '../../components/AvatarUpload';
 
 export default function ProfilePage() {
+    const navigate = useNavigate();
     const dispatch = useDispatch();
     const { user } = useSelector(s => s.auth);
     const [profile, setProfile] = useState(null);

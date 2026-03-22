@@ -7,7 +7,7 @@ import {
     deleteNotificationAPI 
 } from '../api/axiosClient';
 import { 
-    Bell, CheckCheck, X, ChevronRight, UserPlus, Heart, MessageSquare, Briefcase, Share2, AtSign 
+    Bell, CheckCheck, X, ChevronRight, UserPlus, Heart, MessageSquare, Briefcase, Share2, AtSign, Calendar, Video 
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
@@ -108,6 +108,35 @@ export default function NotificationWidget() {
         }
     };
 
+    const renderWithLinks = (text) => {
+        if (!text) return null;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const parts = text.split(urlRegex);
+        return parts.map((part, i) => {
+            if (urlRegex.test(part)) {
+                let displayUrl = part;
+                if (part.includes('zoom.us')) {
+                    displayUrl = "Join Zoom Meeting 🔗";
+                } else if (part.length > 30) {
+                    displayUrl = part.substring(0, 27) + "...";
+                }
+                return (
+                    <a 
+                        key={i} 
+                        href={part} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-primary-light underline underline-offset-2 break-all hover:text-primary transition-colors font-bold inline-block mx-1" 
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {displayUrl}
+                    </a>
+                );
+            }
+            return part;
+        });
+    };
+
     const getNotificationStyle = (type) => {
         switch(type) {
             case 'connection_request': return { icon: <UserPlus size={18} className="text-secondary" />, bg: 'bg-secondary/10', border: 'border-secondary/30' };
@@ -116,6 +145,11 @@ export default function NotificationWidget() {
             case 'post_like': return { icon: <Heart size={18} className="text-red-400" />, bg: 'bg-red-400/10', border: 'border-red-400/30' };
             case 'post_comment': return { icon: <MessageSquare size={18} className="text-blue-400" />, bg: 'bg-blue-400/10', border: 'border-blue-400/30' };
             case 'message': return { icon: <MessageSquare size={18} className="text-primary" />, bg: 'bg-primary/10', border: 'border-primary/30' };
+            case 'interview_scheduled': return { icon: <Calendar size={18} className="text-amber-400" />, bg: 'bg-amber-400/10', border: 'border-amber-400/30' };
+            case 'interview_reminder': return { icon: <Video size={18} className="text-green-400" />, bg: 'bg-green-400/10', border: 'border-green-400/30' };
+            case 'job_application': return { icon: <Briefcase size={18} className="text-primary-light" />, bg: 'bg-primary/10', border: 'border-primary/30' };
+            case 'job_update': return { icon: <Briefcase size={18} className="text-amber-400" />, bg: 'bg-amber-400/10', border: 'border-amber-400/30' };
+            case 'offer_letter': return { icon: <Briefcase size={18} className="text-green-400" />, bg: 'bg-green-400/10', border: 'border-green-400/30' };
             default: return { icon: <Bell size={18} className="text-text-secondary" />, bg: 'bg-white/10', border: 'border-white/20' };
         }
     };
@@ -131,7 +165,12 @@ export default function NotificationWidget() {
             case 'comment_like': return <span><strong className="text-text-primary">{name}</strong> liked your comment.</span>;
             case 'message': return <span><strong className="text-text-primary">{name}</strong> sent you a message.</span>;
             case 'post_mention': return <span><strong className="text-text-primary">{name}</strong> mentioned you in a post.</span>;
-            default: return <span><strong className="text-text-primary">{name}</strong> interacted with you.</span>;
+            case 'interview_scheduled': return <span><span className="font-bold text-amber-400">📅 INTERVIEW SCHEDULED</span><br/>{renderWithLinks(n.comment)}</span>;
+            case 'interview_reminder': return <span><span className="font-bold text-green-400">⏰ INTERVIEW REMINDER</span><br/>{renderWithLinks(n.comment)}</span>;
+            case 'job_application': return <span>{renderWithLinks(n.comment) || <><strong className="text-text-primary">{name}</strong> interacted with your application.</>}</span>;
+            case 'job_update': return <span>{renderWithLinks(n.comment)}</span>;
+            case 'offer_letter': return <span><span className="font-bold text-green-400">🎉 OFFER LETTER</span><br/>{renderWithLinks(n.comment)}</span>;
+            default: return <span>{n.comment || <><strong className="text-text-primary">{name}</strong> interacted with you.</>}</span>;
         }
     };
 
@@ -153,7 +192,20 @@ export default function NotificationWidget() {
             case 'post_comment':
             case 'comment_like':
             case 'post_mention':
-                navigate('/feed'); // Could be routed to specific post if we had a single post view
+                navigate('/feed');
+                setOpen(false);
+                break;
+            case 'interview_reminder': {
+                // Try to extract Zoom URL from comment and open it
+                const urlMatch = n.comment?.match(/(https?:\/\/[^\s]+)/);
+                if (urlMatch) {
+                    window.open(urlMatch[1], '_blank', 'noopener,noreferrer');
+                }
+                setOpen(false);
+                break;
+            }
+            case 'offer_letter':
+                navigate('/applications');
                 setOpen(false);
                 break;
             default: break;

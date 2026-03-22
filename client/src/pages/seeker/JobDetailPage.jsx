@@ -14,11 +14,12 @@ export default function JobDetailPage() {
     const [applying, setApplying] = useState(false);
     const [applied, setApplied] = useState(false);
     const [cover, setCover] = useState('');
+    const [coverFile, setCoverFile] = useState(null);
 
     useEffect(() => {
         getJobByIdAPI(id).then(r => {
             setJob(r.data);
-            setApplied(r.data.applicants?.some(a => a.user === user?._id));
+            setApplied(r.data.applicants?.some(a => (a.user?._id || a.user) === user?._id));
         }).finally(() => setLoading(false));
     }, [id]);
 
@@ -26,7 +27,13 @@ export default function JobDetailPage() {
         if (applying) return;
         setApplying(true);
         try {
-            const r = await applyToJobAPI(id, { coverLetter: cover });
+            const formData = new FormData();
+            formData.append('coverLetter', cover);
+            if (coverFile) {
+                formData.append('coverLetterFile', coverFile);
+            }
+            
+            const r = await applyToJobAPI(id, formData);
             setApplied(true);
             toast.success(`Application Sent! AI Match Score: ${r.data.aiMatchScore}% 🎯`, {
                 style: {
@@ -38,7 +45,9 @@ export default function JobDetailPage() {
             });
         } catch (err) {
             toast.error(err.response?.data?.message || 'Application failed to initialize');
-        } finally { setApplying(false); }
+        } finally { 
+            setApplying(false); 
+        }
     };
 
     if (loading) return (
@@ -112,7 +121,7 @@ export default function JobDetailPage() {
                                 </div>
                                 <div className="p-4 bg-white/5 rounded-3xl border border-white/5 text-center">
                                     <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Experience</div>
-                                    <div className="text-lg font-display font-black text-text-primary uppercase">{job.experienceLevel}</div>
+                                    <div className="text-lg font-display font-black text-text-primary uppercase">{job.experienceLevel} Level</div>
                                 </div>
                                 <div className="p-4 bg-white/5 rounded-3xl border border-white/5 text-center">
                                     <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Engagement</div>
@@ -187,6 +196,12 @@ export default function JobDetailPage() {
                                             value={cover} 
                                             onChange={e => setCover(e.target.value)} 
                                         />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] ml-2">Attachment (PDF/DOC)</label>
+                                        <input type="file" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-[10px] text-text-muted font-black focus:outline-none focus:border-primary/40 transition-all" accept=".pdf,.doc,.docx" 
+                                            onChange={e => setCoverFile(e.target.files[0])} />
                                     </div>
 
                                     <button 

@@ -15,7 +15,10 @@ const notificationSchema = new mongoose.Schema({
             'post_share',
             'post_mention',
             'message',
-            'follow'
+            'follow',
+            'job_application',
+            'interview_scheduled',
+            'interview_reminder'
         ],
         required: true
     },

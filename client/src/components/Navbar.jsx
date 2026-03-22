@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../app/slices/authSlice';
+import { logout, fetchMe } from '../app/slices/authSlice';
 import { searchAll, clearSearch } from '../app/slices/searchSlice';
-import { Home, Newspaper, BriefcaseBusiness, FileText, Sparkles, Users, Bell, ChevronDown, Zap, Search, User, LogOut, IdCard, X, MessageSquare } from 'lucide-react';
+import { Home, Newspaper, BriefcaseBusiness, FileText, Sparkles, Users, Bell, ChevronDown, Zap, Search, User, LogOut, IdCard, X, MessageSquare, CheckCircle, Building2 } from 'lucide-react';
+import HrmsSetupModal from './HrmsSetupModal';
 
 export default function Navbar() {
     const { user } = useSelector(s => s.auth);
@@ -16,6 +17,7 @@ export default function Navbar() {
     const [searchInput, setSearchInput] = useState('');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [hrmsModalOpen, setHrmsModalOpen] = useState(false);
     const dropRef = useRef();
     const searchRef = useRef();
     const resultsRef = useRef();
@@ -62,13 +64,20 @@ export default function Navbar() {
         return () => clearTimeout(t);
     }, [dispatch, searchInput]);
 
+    useEffect(() => {
+        // Only fetch if user is HR and hrmsAccount is false/unknown to ensure we have the latest setup status
+        if (user && user.role === 'hr' && !user.hrmsAccount) {
+            dispatch(fetchMe());
+        }
+    }, [user?.role, user?.hrmsAccount, dispatch]);
+
     const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
     const seekerLinks = [
         { path: '/dashboard', label: 'Dashboard', icon: <Home size={18} /> },
         { path: '/feed', label: 'Feed', icon: <Newspaper size={18} /> },
         { path: '/jobs', label: 'Jobs', icon: <BriefcaseBusiness size={18} /> },
-        { path: '/applications', label: 'Applications', icon: <FileText size={18} /> },
+        { path: '/applications', label: 'Applied Jobs', icon: <FileText size={18} /> },
         { path: '/ai-feedback', label: 'AI Feedback', icon: <Sparkles size={18} /> },
     ];
 
@@ -126,6 +135,22 @@ export default function Navbar() {
                                     <span>{l.label}</span>
                                 </Link>
                             ))}
+                            {user.role === 'hr' && (
+                                <button
+                                    onClick={() => {
+                                        if (user.hrmsAccount) {
+                                            window.location.href = 'http://localhost:3003';
+                                        } else {
+                                            setHrmsModalOpen(true);
+                                        }
+                                    }}
+                                    title={user.hrmsAccount ? 'Open HRMS Dashboard' : 'Set up your HRMS account'}
+                                    className="flex items-center gap-2.5 px-4 py-2 rounded-xl text-[13px] font-bold bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-white/10 cursor-pointer"
+                                >
+                                    <Building2 size={16} />
+                                    <span>HRMS Service</span>
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -160,6 +185,9 @@ export default function Navbar() {
                                     </span>
                                 )}
                             </button>
+                            <Link to="/notifications" className="btn-icon btn-ghost nav-icon-btn" aria-label="Notifications">
+                                <Bell size={18} />
+                            </Link>
 
                             {/* Avatar Dropdown */}
                             <div className="relative" ref={dropRef}>
@@ -307,6 +335,11 @@ export default function Navbar() {
                         </Link>
                     ))}
                 </div>
+            )}
+
+            {/* HRMS Setup Modal */}
+            {hrmsModalOpen && (
+                <HrmsSetupModal onClose={() => setHrmsModalOpen(false)} />
             )}
         </nav>
     );

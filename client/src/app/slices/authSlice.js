@@ -53,7 +53,13 @@ const authSlice = createSlice({
                 localStorage.setItem('user', JSON.stringify(state.user));
             }
         },
-        clearError(state) { state.error = null; }
+        clearError(state) { state.error = null; },
+        setHrmsAccount(state) {
+            if (state.user) {
+                state.user.hrmsAccount = true;
+                localStorage.setItem('user', JSON.stringify(state.user));
+            }
+        }
     },
     extraReducers: (builder) => {
         const pending = (state) => { state.loading = true; state.error = null; };
@@ -73,5 +79,5 @@ const authSlice = createSlice({
     }
 });
 
-export const { logout, updateUserName, clearError } = authSlice.actions;
+export const { logout, updateUserName, clearError, setHrmsAccount } = authSlice.actions;
 export default authSlice.reducer;

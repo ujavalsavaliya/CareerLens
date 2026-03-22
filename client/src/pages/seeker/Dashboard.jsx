@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { getMyProfileAPI, getRecommendedJobsAPI } from '../../api/axiosClient';
 import SocialFeed from '../../components/SocialFeed';
-import { Brain, Briefcase, FileText, ArrowRight, CheckCircle, AlertCircle, TrendingUp, Star, MapPin, Clock, Zap, Target, Sparkles, Plus } from 'lucide-react';
+import { Brain, Briefcase, FileText, ArrowRight, CheckCircle, AlertCircle, TrendingUp, Star, MapPin, Clock, Zap, Target, Sparkles, Plus, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function ScoreRing({ score }) {
@@ -76,24 +76,30 @@ export default function Dashboard() {
 
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* ═══════════ HEADER ═══════════ */}
-                <div className="flex flex-col items-start gap-6 mb-10 w-full max-w-3xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-black uppercase tracking-widest">
-                        <Sparkles size={12} className="animate-pulse" /> Mission Control Active
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                    <div className="max-w-3xl">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary-light text-[10px] font-black uppercase tracking-widest mb-6">
+                            <Sparkles size={12} className="animate-pulse" /> Mission Control Active
+                        </div>
+                        <h1 className="text-4xl lg:text-5xl font-display font-black text-text-primary tracking-tight leading-tight">
+                            Elevating your career, <br />
+                            <span className="bg-linear-to-r from-primary via-primary-light to-secondary bg-clip-text text-transparent">
+                                {user?.name?.split(' ')[0] || 'Seeker'}!
+                            </span>
+                        </h1>
                     </div>
-                    <h1 className="text-4xl lg:text-5xl font-display font-black text-text-primary tracking-tight leading-tight">
-                        Elevating your career, <br />
-                        <span className="bg-linear-to-r from-primary via-primary-light to-secondary bg-clip-text text-transparent">
-                            {user?.name?.split(' ')[0] || 'Seeker'}!
-                        </span>
-                    </h1>
-                    
-                    <div className="flex flex-wrap items-center gap-4 mt-2">
+
+                    <div className="flex items-center gap-4">
+                        <Link to="/notifications" className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-text-muted hover:text-primary hover:border-primary/40 transition-all relative">
+                            <Bell size={20} />
+                            <div className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full animate-pulse" />
+                        </Link>
                         <Link to="/profile" className="px-6 py-3.5 bg-white/5 backdrop-blur-md border border-white/10 text-white font-black rounded-2xl hover:bg-white/10 transition-all flex items-center gap-3 group text-sm">
                             <FileText size={18} className="text-primary-light group-hover:rotate-12 transition-transform" /> 
                             Refine Profile
                         </Link>
                         <Link to="/jobs" className="px-6 py-3.5 bg-linear-to-r from-primary to-primary-dark text-white font-black rounded-2xl shadow-xl shadow-primary/30 hover:scale-[1.03] active:scale-[0.98] transition-all flex items-center gap-3 text-sm">
-                            <Briefcase size={18} /> Explore Opportunities
+                            <Briefcase size={18} /> Explore Hub
                         </Link>
                     </div>
                 </div>

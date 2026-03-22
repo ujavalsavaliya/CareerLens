@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
         publicId: { type: String, default: '' }
     },
     premium: { type: Boolean, default: false },
+    hrmsAccount: { type: Boolean, default: false },
     premiumExpiry: { type: Date },
     profile: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile' },
     company: { type: String, default: '' },
