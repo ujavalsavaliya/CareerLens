@@ -33,6 +33,7 @@ const register = async (req, res) => {
             company: user.company,
             premium: user.premium,
             profile: user.profile,
+            hrmsAccount: user.hrmsAccount,
             token: generateToken(user._id)
         });
     } catch (error) {
@@ -66,6 +67,7 @@ const login = async (req, res) => {
             banner: user.banner,
             premium: user.premium,
             profile: user.profile,
+            hrmsAccount: user.hrmsAccount,
             token: generateToken(user._id)
         });
     } catch (error) {

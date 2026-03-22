@@ -19,6 +19,9 @@ import PostJobPage from './pages/hr/PostJobPage';
 import ManageJobsPage from './pages/hr/ManageJobsPage';
 import CandidatesPage from './pages/hr/CandidatesPage';
 import CandidateProfilePage from './pages/hr/CandidateProfilePage';
+import JobApplicantsPage from './pages/hr/JobApplicantsPage';
+import ShortlistedCandidatesPage from './pages/hr/ShortlistedCandidatesPage';
+import NotificationsPage from './pages/shared/NotificationsPage';
 import SocialFeed from './components/SocialFeed';
 import MyProfileOverview from './pages/seeker/MyProfileOverview';
 import ChatWidget from './components/ChatWidget';
@@ -69,13 +72,16 @@ function AppLayout() {
           <Route path="/jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
           <Route path="/jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
           <Route path="/applications" element={<PrivateRoute role="jobseeker"><ApplicationsPage /></PrivateRoute>} />
+          <Route path="/notifications" element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
           <Route path="/feed" element={<PrivateRoute><SocialFeed /></PrivateRoute>} />
 
           {/* HR */}
           <Route path="/hr/jobs" element={<PrivateRoute role="hr"><ManageJobsPage /></PrivateRoute>} />
           <Route path="/hr/post-job" element={<PrivateRoute role="hr"><PostJobPage /></PrivateRoute>} />
           <Route path="/hr/jobs/:id/candidates" element={<PrivateRoute role="hr"><CandidatesPage /></PrivateRoute>} />
+          <Route path="/hr/jobs/:id/applicants" element={<PrivateRoute role="hr"><JobApplicantsPage /></PrivateRoute>} />
           <Route path="/hr/candidates/:userId" element={<PrivateRoute role="hr"><CandidateProfilePage /></PrivateRoute>} />
+          <Route path="/hr/shortlisted" element={<PrivateRoute role="hr"><ShortlistedCandidatesPage /></PrivateRoute>} />
           <Route path="/hr/candidates" element={<PrivateRoute role="hr"><HRDashboard /></PrivateRoute>} />
 
           {/* Fallback */}

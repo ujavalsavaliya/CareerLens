@@ -68,15 +68,26 @@ export const getRecommendedJobsAPI = () => API.get('/jobs/recommended');
 export const getMyJobsAPI = () => API.get('/jobs/my-jobs');
 export const getCandidatesAPI = (id) => API.get(`/jobs/${id}/candidates`);
 export const updateApplicantStatusAPI = (jobId, userId, data) => API.put(`/jobs/${jobId}/applicants/${userId}`, data);
+export const scheduleInterviewAPI = (jobId, userId, data) => API.put(`/jobs/${jobId}/applicants/${userId}/interview`, data);
 export const getMyApplicationsAPI = () => API.get('/jobs/my-applications');
-
-// POSTS
-export const getUserPostsAPI = (userId, params) => API.get(`/posts/user/${userId}`, { params });
+export const getShortlistedCandidatesAPI = () => API.get('/jobs/shortlisted');
 
 // NOTIFICATIONS
 export const getNotificationsAPI = () => API.get('/notifications');
 export const markNotificationReadAPI = (id) => API.put(`/notifications/${id}/read`);
 export const markAllNotificationsReadAPI = () => API.put('/notifications/read-all');
 export const deleteNotificationAPI = (id) => API.delete(`/notifications/${id}`);
+
+// POSTS
+export const getUserPostsAPI = (userId, params) => API.get(`/posts/user/${userId}`, { params });
+
+// INTERVIEW SCORING
+export const updateInterviewScoreAPI = (jobId, userId, data) => API.put(`/jobs/${jobId}/applicants/${userId}/score`, data);
+
+// OFFER LETTERS
+export const sendOfferLetterAPI = (jobId, userId, formData) => API.post(`/offers/${jobId}/${userId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const getMyOffersAPI = () => API.get('/offers/my-offers');
+export const respondToOfferAPI = (offerId, data) => API.put(`/offers/${offerId}/respond`, data);
+export const getHROfferAPI = (jobId, userId) => API.get(`/offers/${jobId}/${userId}`);
 
 export default API;

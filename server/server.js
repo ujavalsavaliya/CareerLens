@@ -3,8 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
+const { startInterviewReminderJob } = require('./services/interviewReminderService');
 
 connectDB();
+startInterviewReminderJob();
 
 const app = express();
 
@@ -34,6 +36,7 @@ app.use('/api/connections', require('./routes/connections'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/messages', require('./routes/messages'));
+app.use('/api/offers', require('./routes/offers'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

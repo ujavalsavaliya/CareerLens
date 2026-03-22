@@ -140,8 +140,24 @@ const getAIFeedback = async (req, res) => {
 // @desc  Get a user profile (public)
 const getProfileByUserId = async (req, res) => {
     try {
-        const profile = await Profile.findOne({ user: req.params.userId }).populate('user', 'name email avatar banner role company connectionCount premium');
-        if (!profile) return res.status(404).json({ message: 'Profile not found' });
+        let profile = await Profile.findOne({ user: req.params.userId }).populate('user', 'name email avatar banner role company connectionCount premium');
+        
+        if (!profile) {
+            // Check if user exists even if profile document doesn't
+            const user = await User.findById(req.params.userId).select('name email avatar banner role company connectionCount premium');
+            if (!user) return res.status(404).json({ message: 'User not found' });
+            
+            // Return a "virtual" profile object so the frontend doesn't crash
+            return res.json({
+                user,
+                bio: '',
+                skills: [],
+                experience: [],
+                education: [],
+                followersCount: 0,
+                followingCount: 0
+            });
+        }
         
         const followersCount = await Follow.countDocuments({ following: req.params.userId });
         const followingCount = await Follow.countDocuments({ follower: req.params.userId });
