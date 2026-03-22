@@ -1,0 +1,379 @@
+import LeaveRequest from '../models/LeaveRequest.js';
+import User from '../models/User.js';
+import { logAction } from './auditController.js';
+import { sendNotification } from './notificationController.js';
+
+// Helper: get all user _ids belonging to the same tenant as the requesting user
+const getTenantUserIds = async (tenantId) => {
+  const filter = { isActive: true };
+  if (tenantId) filter.careerLensUserId = tenantId;
+  const users = await User.find(filter).select('_id');
+  return users.map(u => u._id);
+};
+
+export const requestLeave = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { startDate, endDate, category, reason, attachmentUrl, startTime } = req.body;
+    let { endTime } = req.body;
+
+    console.log('Leave request received:', { startDate, endDate, category, reason: reason?.substring(0, 50) });
+
+    if (!startDate || !endDate || !category || !reason) {
+      console.error('Missing required fields:', { startDate: !!startDate, endDate: !!endDate, category: !!category, reason: !!reason });
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Validate category
+    const validCategories = ['Paid Leave', 'Unpaid Leave', 'Half Day Leave', 'Extra Time Leave'];
+    if (!validCategories.includes(category)) {
+      console.error('Invalid category:', category);
+      return res.status(400).json({
+        message: `Invalid leave category. Must be one of: ${validCategories.join(', ')}`,
+        received: category
+      });
+    }
+
+    // Validate time fields for half day leave
+    if (category === 'Half Day Leave') {
+      if (!startTime) {
+        return res.status(400).json({
+          message: 'Start time is required for Half Day Leave'
+        });
+      }
+      // Calculate end time for half day leave if not provided (add 4 hours)
+      if (!endTime && startTime) {
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const startMinutes = hours * 60 + minutes;
+        const endMinutes = startMinutes + 240; // 4 hours = 240 minutes
+        const endHours = Math.floor(endMinutes / 60) % 24;
+        const endMins = endMinutes % 60;
+        endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+      }
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error('User not found:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const leaveRequest = new LeaveRequest({
+      userId,
+      userName: user.name,
+      startDate,
+      endDate,
+      category,
+      reason,
+      attachmentUrl: attachmentUrl || undefined,
+      status: 'Pending',
+      startTime: startTime || undefined,
+      endTime: endTime || undefined
+    });
+
+    let savedLeave;
+    try {
+      savedLeave = await leaveRequest.save();
+      console.log('Leave request saved successfully:', savedLeave._id);
+    } catch (saveError) {
+      console.error('Leave request save error:', saveError);
+      if (saveError.name === 'ValidationError') {
+        const validationErrors = {};
+        if (saveError.errors) {
+          Object.keys(saveError.errors).forEach(key => {
+            validationErrors[key] = saveError.errors[key].message;
+          });
+        }
+        return res.status(400).json({
+          message: 'Validation error',
+          error: saveError.message,
+          details: validationErrors
+        });
+      }
+      // Re-throw to be caught by outer catch
+      throw saveError;
+    }
+
+    // Send notifications (don't fail if notification fails)
+    try {
+      await sendNotification(userId, `Leave request submitted for ${startDate}`);
+    } catch (notifError) {
+      console.error('Notification error (non-fatal):', notifError);
+    }
+
+    // Notify HR/Admin in the same tenant (don't fail if notification fails)
+    try {
+      const targetRoles = (user.role === 'HR' || user.role === 'Admin') ? ['Admin'] : ['HR', 'Admin'];
+      const approverFilter = { role: { $in: targetRoles }, isActive: true };
+      if (user.careerLensUserId) approverFilter.careerLensUserId = user.careerLensUserId;
+      const approvers = await User.find(approverFilter);
+
+      for (const approver of approvers) {
+        if (approver._id.toString() !== userId.toString()) {
+          try {
+            await sendNotification(approver._id, `New leave request from ${user.name}`);
+          } catch (notifError) {
+            console.error(`Notification error for approver ${approver._id} (non-fatal):`, notifError);
+          }
+        }
+      }
+    } catch (notifError) {
+      console.error('HR notification error (non-fatal):', notifError);
+    }
+
+    // Return the saved leave request
+    res.status(201).json(savedLeave);
+  } catch (error) {
+    console.error('Request leave error:', error);
+    console.error('Error stack:', error.stack);
+
+    // Return more detailed error message
+    const errorMessage = error.message || 'Server error';
+    const isValidationError = error.name === 'ValidationError';
+
+    // Format validation errors
+    let errorDetails = undefined;
+    if (isValidationError && error.errors) {
+      errorDetails = {};
+      Object.keys(error.errors).forEach(key => {
+        errorDetails[key] = error.errors[key].message;
+      });
+    }
+
+    res.status(500).json({
+      message: isValidationError ? `Validation error: ${errorMessage}` : `Server error: ${errorMessage}`,
+      error: errorMessage,
+      details: errorDetails,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};
+
+export const getMyLeaves = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const leaves = await LeaveRequest.find({ userId }).sort({ createdAt: -1 });
+    res.json(leaves);
+  } catch (error) {
+    console.error('Get my leaves error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getLeavesByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Verify the userId matches the authenticated user (employees can only see their own)
+    // Or allow HR/Admin to see any user's leaves — but only within their own tenant
+    if (req.user.role !== 'HR' && req.user.role !== 'Admin' && req.user._id.toString() !== userId) {
+      return res.status(403).json({ message: 'Unauthorized to view this user\'s leaves' });
+    }
+
+    // Tenant isolation: HR/Admin can only fetch leaves for users in their own tenant
+    if (req.user.role === 'HR' || req.user.role === 'Admin') {
+      const targetUser = await User.findById(userId).select('careerLensUserId');
+      if (targetUser && req.user.careerLensUserId && targetUser.careerLensUserId !== req.user.careerLensUserId) {
+        return res.status(403).json({ message: 'Access denied. User belongs to a different tenant.' });
+      }
+    }
+
+    const leaves = await LeaveRequest.find({ userId })
+      .populate('userId', 'name username email department role')
+      .sort({ createdAt: -1 });
+
+    res.json(leaves);
+  } catch (error) {
+    console.error('Get leaves by userId error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getAllLeaves = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const query = status ? { status } : {};
+
+    // Tenant isolation: only return leaves for users in the same tenant
+    const tenantId = req.user ? req.user.careerLensUserId : null;
+    const tenantUserIds = await getTenantUserIds(tenantId);
+    query.userId = { $in: tenantUserIds };
+
+    const leaves = await LeaveRequest.find(query)
+      .populate('userId', 'name username email department role')
+      .sort({ createdAt: -1 });
+
+    res.json(leaves);
+  } catch (error) {
+    console.error('Get all leaves error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const updateLeaveStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, hrComment } = req.body;
+
+    if (!['Approved', 'Rejected', 'Pending', 'Cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const leaveRequest = await LeaveRequest.findById(id).populate('userId', 'name careerLensUserId');
+    if (!leaveRequest) {
+      return res.status(404).json({ message: 'Leave request not found' });
+    }
+
+    // Tenant isolation: verify this leave belongs to a user in the same tenant
+    const leaveTenant = leaveRequest.userId?.careerLensUserId || null;
+    const callerTenant = req.user?.careerLensUserId || null;
+    if (callerTenant && leaveTenant !== callerTenant) {
+      return res.status(403).json({ message: 'Access denied. This leave request belongs to a different tenant.' });
+    }
+
+    const employeeName = leaveRequest.userId?.name || 'Unknown';
+    const startDate = leaveRequest.startDate;
+    const endDate = leaveRequest.endDate;
+    const category = leaveRequest.category;
+
+    const beforeData = JSON.stringify({ status: leaveRequest.status, comment: leaveRequest.hrComment });
+
+    leaveRequest.status = status;
+    if (hrComment) leaveRequest.hrComment = hrComment;
+
+    await leaveRequest.save();
+    const afterData = JSON.stringify({ status: leaveRequest.status, comment: leaveRequest.hrComment });
+
+    await logAction(
+      req.user._id,
+      req.user.name,
+      'UPDATE_LEAVE',
+      'LEAVE',
+      id,
+      `${status} ${category} leave for ${employeeName} (${startDate} to ${endDate}). Comment: ${hrComment || 'None'}`,
+      beforeData,
+      afterData
+    );
+
+    await sendNotification(leaveRequest.userId._id || leaveRequest.userId, `Your leave request for ${startDate} was ${status}.`);
+
+    res.json(leaveRequest);
+  } catch (error) {
+    console.error('Update leave status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const adminUpdateLeave = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate, category, reason, startTime, endTime, hrComment, status } = req.body;
+
+    const leaveRequest = await LeaveRequest.findById(id).populate('userId', 'name careerLensUserId');
+    if (!leaveRequest) {
+      return res.status(404).json({ message: 'Leave request not found' });
+    }
+
+    // Tenant isolation check
+    const leaveTenant = leaveRequest.userId?.careerLensUserId || null;
+    const callerTenant = req.user?.careerLensUserId || null;
+    if (callerTenant && leaveTenant !== callerTenant) {
+      return res.status(403).json({ message: 'Access denied. This leave request belongs to a different tenant.' });
+    }
+
+    const beforeData = JSON.stringify(leaveRequest.toObject());
+
+    if (startDate) leaveRequest.startDate = startDate;
+    if (endDate) leaveRequest.endDate = endDate;
+    if (category) leaveRequest.category = category;
+    if (reason) leaveRequest.reason = reason;
+    if (startTime !== undefined) leaveRequest.startTime = startTime;
+    if (endTime !== undefined) leaveRequest.endTime = endTime;
+    if (hrComment !== undefined) leaveRequest.hrComment = hrComment;
+    if (status) leaveRequest.status = status;
+
+    await leaveRequest.save();
+    const afterData = JSON.stringify(leaveRequest.toObject());
+
+    await logAction(
+      req.user._id,
+      req.user.name,
+      'ADMIN_EDIT_LEAVE',
+      'LEAVE',
+      id,
+      `Admin edited leave for ${leaveRequest.userId?.name || 'Unknown'}`,
+      beforeData,
+      afterData
+    );
+
+    res.json(leaveRequest);
+  } catch (error) {
+    console.error('Admin update leave error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const deleteLeave = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const leaveRequest = await LeaveRequest.findById(id).populate('userId', 'name careerLensUserId');
+    if (!leaveRequest) {
+      return res.status(404).json({ message: 'Leave request not found' });
+    }
+
+    // Tenant isolation check
+    const leaveTenant = leaveRequest.userId?.careerLensUserId || null;
+    const callerTenant = req.user?.careerLensUserId || null;
+    if (callerTenant && leaveTenant !== callerTenant) {
+      return res.status(403).json({ message: 'Access denied. This leave request belongs to a different tenant.' });
+    }
+
+    const employeeName = leaveRequest.userId?.name || 'Unknown';
+    const startDate = leaveRequest.startDate;
+
+    await LeaveRequest.findByIdAndDelete(id);
+
+    await logAction(
+      req.user._id,
+      req.user.name,
+      'DELETE_LEAVE',
+      'LEAVE',
+      id,
+      `Deleted leave request for ${employeeName} on ${startDate}`
+    );
+
+    res.json({ message: 'Leave request deleted successfully' });
+  } catch (error) {
+    console.error('Delete leave error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getPendingLeaves = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const tenantId = req.user.careerLensUserId || null;
+    let query = { status: 'Pending' };
+
+    // Tenant isolation: scope pending leaves to the same tenant's users
+    const tenantUserIds = await getTenantUserIds(tenantId);
+    query.userId = { $in: tenantUserIds };
+
+    // HR can only see employee requests (within same tenant)
+    if (userRole === 'HR') {
+      const employees = await User.find({ role: 'Employee', isActive: true, ...(tenantId ? { careerLensUserId: tenantId } : {}) }).select('_id');
+      const employeeIds = employees.map(e => e._id);
+      query.userId = { $in: employeeIds };
+    }
+
+    const leaves = await LeaveRequest.find(query)
+      .populate('userId', 'name username email department role')
+      .sort({ createdAt: -1 });
+
+    res.json(leaves);
+  } catch (error) {
+    console.error('Get pending leaves error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
